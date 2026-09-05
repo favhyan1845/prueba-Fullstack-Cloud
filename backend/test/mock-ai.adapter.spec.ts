@@ -39,6 +39,6 @@ describe('MockAIAdapter', () => {
       architecture: 'Monolith',
       sampleFiles: [],
     });
-    expect(summary).toContain('no external integrations detected');
+    expect(summary).toContain('sin integraciones externas detectadas');
   });
 });

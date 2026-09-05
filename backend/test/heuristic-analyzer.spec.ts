@@ -48,9 +48,9 @@ describe('HeuristicAnalyzerAdapter', () => {
     expect(result.architecture.confidence).toBeGreaterThan(0.7);
     expect(result.findings).toEqual(expect.any(Array));
     // No README was created, so a missing-README finding should exist.
-    expect(result.findings.some((f) => f.title === 'Missing README')).toBe(true);
+    expect(result.findings.some((f) => f.title === 'Falta README')).toBe(true);
     // No tests were created, so a no-tests finding should exist.
-    expect(result.findings.some((f) => f.title === 'No tests detected')).toBe(true);
+    expect(result.findings.some((f) => f.title === 'Sin pruebas detectadas')).toBe(true);
   });
 
   it('flags CRITICAL when a hardcoded secret pattern is present', async () => {
