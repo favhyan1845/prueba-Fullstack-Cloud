@@ -1,0 +1,44 @@
+# Code Insight AI - local development stack
+#
+# Usage:
+#   docker compose up --build
+#   open http://localhost:8080
+#
+# Notes:
+#   * Backend uses the default Mock AI provider (offline).
+#   * Frontend is served by nginx with /api proxied to backend:3000.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: code-insight-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+    volumes:
+      - backend-tmp:/app/tmp
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/docs-json']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: code-insight-frontend
+    depends_on:
+      - backend
+    ports:
+      - '8080:80'
+
+volumes:
+  backend-tmp:
+    driver: local
