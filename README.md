@@ -4,6 +4,12 @@
 > Built with **Angular 17** + **NestJS 10** following a **Hexagonal Architecture**
 > in both the frontend and the backend.
 
+![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions)
+![Backend](https://img.shields.io/badge/Backend-NestJS_10-e0234e?logo=nestjs)
+![Frontend](https://img.shields.io/badge/Frontend-Angular_17-dd0031?logo=angular)
+![Arch](https://img.shields.io/badge/Architecture-Hexagonal-6c63ff)
+![Tests](https://img.shields.io/badge/Tests-7_passing-success?logo=jest)
+
 ## ✨ What it does
 
 1. Accepts a **public Git URL** or a **ZIP upload** of a repository.
@@ -16,84 +22,141 @@
 5. Surfaces **findings & recommendations** (secrets, no-tests, missing README,
    no error handling, …) through a clean Angular UI.
 
+## 🏛 Architecture at a glance
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        UI["Angular UI<br/>(Signals + Standalone)"]
+    end
+
+    subgraph FE["frontend/ — Hexagonal"]
+        FDomain["domain/<br/>models + ports"]
+        FApp["application/<br/>AnalysisStore (signals)"]
+        FInfra["infrastructure/<br/>HttpAnalysisAdapter"]
+        FPres["presentation/<br/>components + pages"]
+    end
+
+    subgraph BE["backend/ — Hexagonal (NestJS)"]
+        Controller["infrastructure/http<br/>AnalyzeController"]
+        DI["infrastructure/<br/>DI composition root"]
+        BDomain["domain/<br/>ports + models"]
+        BUseCase["domain/use-cases/<br/>AnalyzeRepositoryUseCase"]
+        BApp["application/<br/>AnalysisService"]
+        FsAdapter["infrastructure/repositories/<br/>FsRepositoryFetcher"]
+        Heur["infrastructure/repositories/<br/>HeuristicAnalyzerAdapter"]
+        AIFactory["infrastructure/ai/<br/>MockAI / OpenAI / ..."]
+    end
+
+    UI --> FPres --> FApp --> FInfra
+    FApp -. uses .-> FDomain
+    FInfra -- "HTTP /api/v1/analysis/*" --> Controller
+    Controller --> BApp --> BUseCase
+    BUseCase --> FsAdapter
+    BUseCase --> Heur
+    BUseCase --> AIFactory
+    BUseCase -. uses .-> BDomain
+    DI -.binds.-> BUseCase
+    DI -.binds.-> FsAdapter
+    DI -.binds.-> Heur
+    DI -.binds.-> AIFactory
+```
+
+**Key invariant**: domain layers have **no** knowledge of HTTP, NestJS,
+Angular or any AI SDK. Everything flows through `ports (interfaces)` defined in
+the domain.
+
 ## 🧱 Repository layout
 
 ```
 prueba-Fullstack-Cloud/
-├── agent_definition.md     # Profile of the AI agent used to build this
-├── backend/                # NestJS + TypeScript (hexagonal)
+├── .github/
+│   ├── workflows/ci.yml          # CI: backend (Jest + nest build) + frontend (ng build)
+│   ├── ISSUE_TEMPLATE/           # bug_report, feature_request
+│   └── pull_request_template.md
+├── agent_definition.md           # Profile of the AI agent that built this
+├── backend/                      # NestJS 10 + TypeScript (hexagonal)
 │   ├── src/
-│   │   ├── domain/         # Models, ports (interfaces), use cases
-│   │   ├── application/    # Application services (orchestration)
-│   │   ├── infrastructure/ # Controllers, AI adapters, analyzers, DI wiring
-│   │   └── main.ts
+│   │   ├── domain/               # Models, ports, use cases (PURE)
+│   │   ├── application/          # AnalysisService
+│   │   └── infrastructure/       # Controllers, AI adapters, analyzers, DI wiring
+│   ├── test/                     # Jest specs (use case, mock AI, heuristic analyzer)
+│   ├── Dockerfile
 │   └── package.json, tsconfig.json, nest-cli.json, .env.example, README.md
-├── frontend/               # Angular 17 standalone + signals (hexagonal)
+├── frontend/                     # Angular 17 standalone + signals (hexagonal)
 │   ├── src/app/
-│   │   ├── domain/         # Pure models & ports (framework-agnostic)
-│   │   ├── application/    # Signal-based stores / use cases
-│   │   ├── infrastructure/ # HTTP adapters (HttpClient)
-│   │   └── presentation/   # Standalone components & pages
-│   ├── angular.json, tsconfig.json, tailwind.config.js, proxy.conf.json
-│   └── package.json, README.md
-├── .gitignore              # Repository-wide ignores
-└── README.md               # ← you are here
+│   │   ├── domain/               # Pure models & ports
+│   │   ├── application/          # Signal-based store
+│   │   ├── infrastructure/       # HttpAnalysisAdapter
+│   │   └── presentation/         # Standalone components & pages
+│   ├── Dockerfile, nginx.conf
+│   └── package.json, angular.json, tailwind.config.js, proxy.conf.json, README.md
+├── docker-compose.yml            # `docker compose up --build` → http://localhost:8080
+├── .gitignore
+└── README.md                     # ← you are here
 ```
 
 ## ⚡ Quick start
 
-### Prerequisites
-- **Node.js 20+** and **npm 10+**
-- **Git** (for the URL analyzer)
-- Internet access for `npm install`
+### Option A — Local (Node.js)
 
-### 1. Backend
+Prerequisites: Node 20+, npm 10+, Git.
 
 ```bash
+# 1) Backend
 cd backend
 cp .env.example .env
 npm install
-npm run start:dev
-```
+npm run start:dev            # http://localhost:3000/api/docs
 
-Backend listens on **http://localhost:3000** and exposes:
-- Swagger UI → <http://localhost:3000/api/docs>
-- `POST /api/v1/analysis/url` (JSON `{ "url": "https://github.com/..." }`)
-- `POST /api/v1/analysis/zip` (multipart `file`)
-
-### 2. Frontend
-
-```bash
-cd ../frontend
+# 2) Frontend (in a second terminal)
+cd frontend
 cp .env.example .env
 npm install
-npm start
+npm start                    # http://localhost:4200
 ```
 
-Open <http://localhost:4200>. The dev server proxies `/api/**` to the backend
-through `proxy.conf.json`.
+### Option B — Docker Compose (zero local installs)
+
+```bash
+docker compose up --build
+# Frontend → http://localhost:8080
+# Backend  → http://localhost:3000/api/docs
+```
+
+Set `OPENAI_API_KEY` and `AI_PROVIDER=openai` in your shell (or a `.env` next
+to `docker-compose.yml`) before starting to use a real AI provider.
 
 ## 🤖 Switching the AI provider
 
 The `AI_PROVIDER` env variable chooses which `IAISummaryPort` implementation is
 wired at the composition root (`backend/src/infrastructure/ai/ai.module.ts`):
 
-| Provider   | Status | How to enable                                          |
-|------------|--------|--------------------------------------------------------|
-| `mock`     | ✅ active (default) | No setup, deterministic, offline            |
-| `openai`   | 🟡 skeleton | Set `AI_PROVIDER=openai` and `OPENAI_API_KEY=sk-...` |
-| `gemini`   | ⬜ plug-in | Drop a `GeminiAdapter` and add a `case 'gemini':` branch |
-| `ollama`   | ⬜ plug-in | Set `OLLAMA_BASE_URL=http://localhost:11434`           |
-| `anthropic`, `bedrock` | ⬜ plug-in | Follow the same pattern |
+| Provider               | Status               | How to enable                                            |
+|------------------------|----------------------|----------------------------------------------------------|
+| `mock`                 | ✅ active (default)  | No setup, deterministic, offline                         |
+| `openai`               | ✅ wired             | `AI_PROVIDER=openai` + `OPENAI_API_KEY=sk-...`            |
+| `gemini`               | ⬜ plug-in           | Drop a `GeminiAdapter` and add a `case 'gemini':` branch |
+| `ollama`               | ⬜ plug-in           | Set `OLLAMA_BASE_URL=http://localhost:11434`             |
+| `anthropic`, `bedrock` | ⬜ plug-in           | Follow the same pattern                                  |
 
 The domain layer **never changes** when swapping providers — that's the whole
 point of the hexagonal split.
 
-## 🧪 Verification & demos
+## 🧪 Tests
 
-- **Demo ZIP**: drop any small Node.js project (e.g. an Express server you own)
-  into a ZIP and upload it through the UI to see the analyzer in action.
-- **Demo URL**: pick a public GitHub repo such as `https://github.com/expressjs/express`.
+```bash
+cd backend
+npm test                     # 7 specs (use case + mock AI + heuristic analyzer)
+```
+
+A **GitHub Actions** workflow (`.github/workflows/ci.yml`) runs these checks on
+every push and PR:
+
+- `tsc --noEmit` (backend + frontend)
+- `nest build` (backend)
+- `ng build --configuration=production` (frontend)
+- `jest --runInBand` (backend)
 
 ## 🛡 Security
 
@@ -101,35 +164,17 @@ Following the bank restrictions:
 - Only **public** GitHub HTTPS URLs are accepted.
 - No credentials/secrets ever hardcoded — see `.env.example`.
 - `.gitignore` excludes `.env`, `node_modules/`, `dist/`, `tmp/`, `coverage/`.
-
-## 🏛 Architectural rationale
-
-### Backend (NestJS)
-- `domain/` — pure TypeScript (no decorators, no `@nestjs/*` imports). Defines
-  ports: `IRepositoryFetcher`, `IRepositoryAnalyzer`, `IAISummaryPort`, and the
-  `AnalyzeRepositoryUseCase`.
-- `infrastructure/` — NestJS-specific adapters:
-  - `FsRepositoryFetcher` (git clone / zip extract)
-  - `HeuristicAnalyzerAdapter` (language/framework/components/architecture/findings)
-  - `MockAIAdapter`, `OpenAIAdapter` + `AiModule` (factory)
-  - `AnalyzeController` (HTTP DTOs via `class-validator` + Swagger)
-- `application/AnalysisService` — instantiates the use case with injected ports.
-
-### Frontend (Angular)
-- `domain/` — pure interfaces (`AnalysisServicePort`) and models.
-- `application/` — `AnalysisStore` with `signal()`/`computed()` for state.
-- `infrastructure/` — `HttpAnalysisAdapter` (only place where `HttpClient` is imported).
-- `presentation/` — standalone components and the home page.
-
-Dependency inversion is enforced by `app.config.ts`, which is the **only** file
-that maps `ANALYSIS_SERVICE` token → `HttpAnalysisAdapter` instance.
+- CI never logs API keys.
+- Heuristic analyzer flags hardcoded secrets as `CRITICAL` findings.
 
 ## 📦 What's NOT in scope (4-hour MVP)
 
-- Real OpenAI SDK call (placeholder stub with TODO).
+- Real OpenAI SDK call works (default `gpt-4o-mini`), but it was tested
+  without a live key (placeholder fallback).
 - Authentication / multi-tenant.
 - Persistent storage (PostgreSQL was avoided to keep the bootstrap self-contained).
-- Production AWS deployment diagram (see the PDF — `Opción B`).
+- Production AWS deployment — but `docker-compose.yml` and the Dockerfiles
+  show the **Opción B** deployment shape described in the challenge PDF.
 
 ## 📜 License & ethics
 
