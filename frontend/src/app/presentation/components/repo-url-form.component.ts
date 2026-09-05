@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
   template: `
     <form (ngSubmit)="onSubmit()" class="space-y-3">
       <label class="block text-sm font-medium text-slate-200">
-        Public Git repository URL
+        URL pública de un repositorio Git
       </label>
       <div class="flex gap-2">
         <input
@@ -29,11 +29,12 @@ import { FormsModule } from '@angular/forms';
           [disabled]="!isValid()"
           class="rounded-lg bg-insight-600 px-4 py-2 text-sm font-semibold text-white hover:bg-insight-700 disabled:opacity-50"
         >
-          Analyze
+          Analizar
         </button>
       </div>
       <p class="text-xs text-slate-400">
-        Only public GitHub HTTPS URLs are supported in the MVP. Use the ZIP uploader for private repos (dummy data only).
+        Solo se admiten URLs HTTPS públicas de GitHub en este MVP. Para repositorios
+        privados, usa el cargador de ZIP (únicamente con datos ficticios).
       </p>
     </form>
   `,
