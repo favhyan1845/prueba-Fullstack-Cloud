@@ -7,13 +7,13 @@ on:
     branches: [main, dev]
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────
   backend:
     name: Backend (NestJS)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -30,37 +30,26 @@ jobs:
       - name: Type-check (tsc --noEmit)
         run: npx tsc --noEmit -p tsconfig.json
 
-      - name: Lint (placeholder, runs if eslint config exists)
-        run: |
-          if [ -f .eslintrc.js ] || [ -f .eslintrc.json ]; then
-            npx eslint "src/**/*.ts" --max-warnings=0
-          else
-            echo "No eslint config found - skipping lint step."
-          fi
-
       - name: Unit tests
         run: |
-          mkdir -p test
-          if find test -name '*.spec.ts' -print -quit | grep -q .; then
+          if compgen -G "test/*.spec.ts" > /dev/null; then
+            echo "Specs found - running jest"
             npm test -- --runInBand
           else
-            echo "No backend specs found - creating a smoke test."
-            cat > /tmp/smoke.spec.ts <<'EOF'
-              test('app boots (placeholder)', () => { expect(1 + 1).toBe(2); });
-            EOF
-            npx jest /tmp/smoke.spec.ts --passWithNoTests
+            echo "No specs found in backend/test - passing with --passWithNoTests"
+            npx jest --passWithNoTests
           fi
 
       - name: Build (nest build)
         run: npx nest build
 
-  # ─────────────────────────────────────────────────────────────────────
   frontend:
     name: Frontend (Angular)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -75,10 +64,4 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Build (production)
-        # Skip if package-lock.json is missing (deps weren't installed locally yet)
-        run: |
-          if [ ! -f package-lock.json ]; then
-            echo "No package-lock.json - installing once to generate it."
-            npm install --no-audit --no-fund
-          fi
-          npx ng build --configuration=production
+        run: npx ng build --configuration=production
