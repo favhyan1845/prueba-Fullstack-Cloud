@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { IAISummaryPort } from '../../domain/ports/ai-summary.port';
 
 /**
- * Deterministic mock AI adapter.
- * Generates a coherent functional summary without calling any external API.
- * Perfect for offline demos, tests and CI.
+ * Adaptador determinista de IA (modo simulado).
+ * Genera un resumen funcional coherente en español sin llamar a ninguna API externa.
+ * Ideal para demostraciones offline, tests y CI.
  *
- * Swap by implementing another adapter (OpenAI / Gemini / Ollama / Bedrock) and
- * binding the right token in the DI module.
+ * Para reemplazarlo, implementa otro adaptador (OpenAI / Gemini / Ollama / Bedrock)
+ * y registra el token correspondiente en el módulo de DI.
  */
 @Injectable()
 export class MockAIAdapter implements IAISummaryPort {
@@ -23,16 +23,17 @@ export class MockAIAdapter implements IAISummaryPort {
     sampleFiles: ReadonlyArray<string>;
   }): Promise<string> {
     const compTypes = Array.from(new Set(input.components.map((c) => c.type)));
-    const apis = input.apisConsumed.length ? input.apisConsumed.join(', ') : 'no external integrations detected';
+    const apis = input.apisConsumed.length ? input.apisConsumed.join(', ') : 'sin integraciones externas detectadas';
     const componentsPhrase = compTypes.length
-      ? `with ${compTypes.slice(0, 5).join(', ')} components`
-      : 'with a minimal component footprint';
+      ? `con componentes de tipo ${compTypes.slice(0, 5).join(', ')}`
+      : 'con una huella mínima de componentes';
 
     return (
-      `This project ("${input.repositoryName}") is a ${input.primaryLanguage} application built with ${input.primaryFramework}, ` +
-      `following a ${input.architecture} pattern ${componentsPhrase}. ` +
-      `It integrates with ${apis}. ` +
-      `Based on ${input.sampleFiles.length} key file(s) inspected, the analyzer infers the responsibility above without making external API calls.`
+      `El proyecto "${input.repositoryName}" es una aplicación en ${input.primaryLanguage} ` +
+      `construida con ${input.primaryFramework}, que sigue un patrón de arquitectura ${input.architecture} ` +
+      `${componentsPhrase}. Se integra con ${apis}. ` +
+      `Con base en ${input.sampleFiles.length} archivo(s) clave inspeccionado(s), el analizador infiere ` +
+      `la responsabilidad anterior sin realizar llamadas a APIs externas.`
     );
   }
 }

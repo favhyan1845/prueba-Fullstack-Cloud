@@ -204,11 +204,11 @@ export class HeuristicAnalyzerAdapter implements IRepositoryAnalyzer {
     const dockerfiles = files.filter((f) => /Dockerfile$/i.test(f.path)).length;
     const hasK8s = has(/\/(k8s|helm|deploy)\//);
     if (dockerfiles >= 2 || hasK8s) {
-      ev.push({ description: dockerfiles + ' Dockerfiles detected', path: 'Dockerfile' });
-      if (hasK8s) ev.push({ description: 'Kubernetes/Helm manifests detected', path: 'k8s/' });
+      ev.push({ description: `Se detectaron ${dockerfiles} Dockerfiles`, path: 'Dockerfile' });
+      if (hasK8s) ev.push({ description: 'Se detectaron manifiestos de Kubernetes/Helm', path: 'k8s/' });
       return {
         pattern: ArchitecturePattern.MICROSERVICES, confidence: 0.8, evidence: ev,
-        rationale: 'Multiple container manifests and/or orchestration files suggest a microservices topology.',
+        rationale: 'Múltiples manifiestos de contenedores y/o archivos de orquestación sugieren una topología de microservicios.',
       };
     }
     const hexHits = [
@@ -218,11 +218,11 @@ export class HeuristicAnalyzerAdapter implements IRepositoryAnalyzer {
       has(/\/(ports|adapters)\//),
     ].filter(Boolean).length;
     if (hexHits >= 3) {
-      ev.push({ description: 'Folders named domain/, application/, infrastructure/ present' });
-      ev.push({ description: 'Ports & adapters pattern detected' });
+      ev.push({ description: 'Carpetas domain/, application/, infrastructure/ presentes' });
+      ev.push({ description: 'Patrón de puertos y adaptadores detectado' });
       return {
         pattern: ArchitecturePattern.HEXAGONAL, confidence: 0.85, evidence: ev,
-        rationale: 'Project layout matches the Hexagonal (Ports & Adapters) architecture.',
+        rationale: 'La estructura del proyecto coincide con la arquitectura hexagonal (puertos y adaptadores).',
       };
     }
     const cleanHits = [
@@ -231,32 +231,32 @@ export class HeuristicAnalyzerAdapter implements IRepositoryAnalyzer {
       has(/\/(frameworks|infra|infrastructure)\//),
     ].filter(Boolean).length;
     if (cleanHits >= 3) {
-      ev.push({ description: 'Clean Architecture folders detected (entities/useCases/interfaceAdapters/frameworks)' });
+      ev.push({ description: 'Carpetas de Clean Architecture detectadas (entities/useCases/interfaceAdapters/frameworks)' });
       return {
         pattern: ArchitecturePattern.CLEAN, confidence: 0.8, evidence: ev,
-        rationale: 'Project layout aligns with Clean Architecture (Uncle Bob).',
+        rationale: 'La estructura del proyecto se alinea con Clean Architecture (Uncle Bob).',
       };
     }
     const mvcHits = [has(/\/controllers\//), has(/\/models\//), has(/\/(views|templates)\//)].filter(Boolean).length;
     if (mvcHits >= 2) {
-      ev.push({ description: 'controllers/ + models/ + views/ detected' });
+      ev.push({ description: 'Carpetas controllers/, models/ y views/ detectadas' });
       return {
         pattern: ArchitecturePattern.MVC, confidence: 0.7, evidence: ev,
-        rationale: 'Classic MVC folder structure detected.',
+        rationale: 'Estructura de carpetas MVC clásica detectada.',
       };
     }
     const nLayerHits = [has(/\/repository\//), has(/\/service\//), has(/\/controller\//)].filter(Boolean).length;
     if (nLayerHits >= 2) {
-      ev.push({ description: 'N-Layer folders repository/, service/, controller/ detected' });
+      ev.push({ description: 'Capas N-Layer detectadas: repository/, service/, controller/' });
       return {
         pattern: ArchitecturePattern.N_LAYER, confidence: 0.65, evidence: ev,
-        rationale: 'Layered architecture (N-Layer) detected by typical folder names.',
+        rationale: 'Arquitectura en capas (N-Layer) detectada por nombres típicos de carpetas.',
       };
     }
-    ev.push({ description: 'No clear separation into multiple services or hexagonal/clean boundaries' });
+    ev.push({ description: 'No hay una separación clara en servicios múltiples ni en límites hexagonales/clean' });
     return {
       pattern: ArchitecturePattern.MONOLITH, confidence: 0.55, evidence: ev,
-      rationale: 'No clear separation - treated as a Monolith.',
+      rationale: 'Sin separación clara: se trata como un monolito.',
     };
   }
 
@@ -265,11 +265,11 @@ export class HeuristicAnalyzerAdapter implements IRepositoryAnalyzer {
     const out: ApiConsumption[] = [];
     const text = files.map((f) => f.content ?? '').join('\n');
     if (/(mongoose|createConnection|mongodb)/i.test(text)) out.push({ name: 'MongoDB', type: 'database' });
-    if (/(typeorm|prisma|sequelize|knex|@nestjs\/typeorm)/i.test(text)) out.push({ name: 'SQL ORM (TypeORM/Prisma/Sequelize)', type: 'database' });
+    if (/(typeorm|prisma|sequelize|knex|@nestjs\/typeorm)/i.test(text)) out.push({ name: 'ORM SQL (TypeORM/Prisma/Sequelize)', type: 'database' });
     if (/(\bpg\b|postgres|mysql|sqlite)/i.test(text)) out.push({ name: 'PostgreSQL/MySQL/SQLite', type: 'database' });
-    if (/(axios|HttpClient|fetch\(|got\()/i.test(text)) out.push({ name: 'HTTP REST client', type: 'rest' });
+    if (/(axios|HttpClient|fetch\(|got\()/i.test(text)) out.push({ name: 'Cliente HTTP REST', type: 'rest' });
     if (/(@apollo\/apollo-angular|apollo-client|graphql-request|@nestjs\/graphql)/i.test(text)) out.push({ name: 'GraphQL', type: 'graphql' });
-    if (/(amqplib|rabbitmq|kafkajs|sqs|sns)/i.test(text)) out.push({ name: 'Message Queue', type: 'queue' });
+    if (/(amqplib|rabbitmq|kafkajs|sqs|sns)/i.test(text)) out.push({ name: 'Cola de mensajes', type: 'queue' });
     const matches = [...text.matchAll(/(stripe|@aws-sdk\/client-\w+|firebase|@google-cloud\/[a-z0-9-]+)/gi)].map((m) => m[1]);
     for (const m of new Set(matches)) out.push({ name: m, type: 'sdk' });
     return Array.from(new Map(out.map((i) => [i.name, i])).values());
@@ -282,19 +282,19 @@ export class HeuristicAnalyzerAdapter implements IRepositoryAnalyzer {
     const hasTests = files.some((f) => /\.(spec|test)\.(ts|js|java|py)$/i.test(f.path));
     const hasErrorHandling = /(try\s*{|catch\s*\(|HttpException|@ExceptionHandler|Result<|Either<)/i.test(text);
     if (!hasReadme) {
-      out.push({ title: 'Missing README', description: 'No README file was detected at the project root.', severity: RiskSeverity.MEDIUM, category: 'documentation', recommendation: 'Add a README.md describing purpose, stack, setup and run instructions.' });
+      out.push({ title: 'Falta README', description: 'No se detectó un archivo README en la raíz del proyecto.', severity: RiskSeverity.MEDIUM, category: 'documentation', recommendation: 'Añade un README.md que describa el propósito, el stack, la configuración y las instrucciones de ejecución.' });
     }
     if (!hasTests) {
-      out.push({ title: 'No tests detected', description: 'No .spec/.test files were found in the analyzed codebase.', severity: RiskSeverity.MEDIUM, category: 'maintainability', recommendation: 'Adopt unit/integration tests (Jest, JUnit, pytest, etc.) and run them in CI.' });
+      out.push({ title: 'Sin pruebas detectadas', description: 'No se encontraron archivos .spec/.test en el código analizado.', severity: RiskSeverity.MEDIUM, category: 'maintainability', recommendation: 'Adopta pruebas unitarias e integradas (Jest, JUnit, pytest, etc.) y ejecútalas en CI.' });
     }
     if (!hasErrorHandling) {
-      out.push({ title: 'No error handling detected', description: 'No try/catch, HttpException or Result/Either usage was detected.', severity: RiskSeverity.HIGH, category: 'maintainability', recommendation: 'Centralize error handling (filter/interceptor, Result<T,E>, or middleware).' });
+      out.push({ title: 'Sin manejo de errores', description: 'No se detectó ningún try/catch, HttpException o Result/Either en el código.', severity: RiskSeverity.HIGH, category: 'maintainability', recommendation: 'Centraliza el manejo de errores (filtro/interceptor, Result<T,E> o middleware).' });
     }
     if (/(TODO|FIXME|XXX)/i.test(text)) {
-      out.push({ title: 'Outstanding TODOs/FIXMEs', description: 'Source contains TODO/FIXME/XXX markers.', severity: RiskSeverity.LOW, category: 'maintainability', recommendation: 'Track and resolve TODOs in your issue tracker.' });
+      out.push({ title: 'TODOs / FIXMEs pendientes', description: 'El código fuente contiene marcadores TODO/FIXME/XXX.', severity: RiskSeverity.LOW, category: 'maintainability', recommendation: 'Haz seguimiento y resuelve los TODOs en tu gestor de incidencias.' });
     }
     if (/(password|secret|api[_-]?key)\s*[:=]\s*["\'`][^"\'`]+["\'`]/i.test(text)) {
-      out.push({ title: 'Hardcoded secrets', description: 'Hardcoded credentials or API keys detected in source.', severity: RiskSeverity.CRITICAL, category: 'security', recommendation: 'Move secrets to environment variables or a secret manager (AWS SM, Vault).' });
+      out.push({ title: 'Secretos hardcodeados', description: 'Se detectaron credenciales o API keys en el código fuente.', severity: RiskSeverity.CRITICAL, category: 'security', recommendation: 'Mueve los secretos a variables de entorno o a un gestor de secretos (AWS SM, Vault).' });
     }
     return out;
   }

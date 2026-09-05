@@ -9,7 +9,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Output, signal } from
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <label class="block text-sm font-medium text-slate-200 mb-2">
-      Or upload a ZIP archive of the project
+      O sube un archivo ZIP del proyecto
     </label>
     <input
       type="file"
@@ -19,7 +19,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Output, signal } from
     />
     @if (file(); as f) {
       <p class="mt-2 text-xs text-slate-400">
-        Selected: <span class="font-mono">{{ f.name }}</span> · {{ (f.size / 1024).toFixed(1) }} KB
+        Seleccionado: <span class="font-mono">{{ f.name }}</span> · {{ (f.size / 1024).toFixed(1) }} KB
       </p>
     }
   `,
